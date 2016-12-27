@@ -32,7 +32,8 @@ object Test3D {
   var corner = false;
   
   var baseVectors: Int = 8
-  var randomCounts: Array[Int] = null;
+  var randomCounts: Array[Int] = null
+  var randomDim: Int = -1
   var start: Double = -20.0
   var end: Double = 20.0
   var step: Double = 2.0
@@ -98,6 +99,8 @@ object Test3D {
     println("Using " + theta.getClass.getName)
     println("Using lattice " + l.getClass.getName)
     println("Jitter of " + jitter.toString)
+    if (randomDim >= 0)
+      println("Randomized dimension #" + randomDim)
     println("Base vectors are " + (if (corner) "at the corners" else "inside the corners"))
     (0 until baseVectors).foreach((i) => println("(" +
         ivecs.ivecs(i).map((x) => "%.2f".format(x)).reduce(_ + "," + _) 
@@ -139,7 +142,7 @@ object Test3D {
    */
   def initTrainingVectors(rndCount: Int, jitter: Double): InputVectors = {
     val offset = if (corner) 0.0 else jitter
-    var baseVecs = List(Array(1.0-offset, offset, offset))
+    var baseVecs =                          List(Array(1.0-offset,     offset,     offset))
     if (baseVectors >= 2) baseVecs = baseVecs :+ Array(    offset, 1.0-offset,     offset)
     if (baseVectors >= 3) baseVecs = baseVecs :+ Array(    offset,     offset, 1.0-offset)
     if (baseVectors >= 4) baseVecs = baseVecs :+ Array(1.0-offset,     offset, 1.0-offset)
@@ -150,6 +153,7 @@ object Test3D {
 
     var ivecs = new InputVectors()
     randomCounts = ivecs.fillClusters(3, baseVecs, jitter, rndCount)
+    if (randomDim >= 0) ivecs.randomizeOneDimension(randomDim, 0.0, 1.0)
     ivecs
   }
     
@@ -164,6 +168,7 @@ object Test3D {
         "-layout" -> ("string", "hex or rect"),
         "-dim" -> ("integer", "dimension of the weight vectors"),
         "-random" -> ("integer", "number of random vectors to generate"),
+        "-randomize" -> ("integer", "dimension to randomize after generation"),
         "-radius" -> ("integer", "size (in pixels) of circles to draw"),
         "-umatrix" -> ("null", "generate UMatrix for final networks"),
         "-epochs" -> ("integer", "total number of training epochs"),
@@ -205,6 +210,7 @@ object Test3D {
           case "-layout" => makeHex = (args(i+1) == "hex")
           case "-dim" => dimension = args(i+1).toInt
           case "-random" => randomVecs = args(i+1).toInt
+          case "-randomize" => randomDim = args(i+1).toInt
           case "-radius" => radius = args(i+1).toInt
           case "-umatrix" => createUmatrix = true 
           case "-epochs" => epochs = args(i+1).toInt
@@ -296,6 +302,7 @@ object Test3D {
       .add("corner", corner)
       .add("base-vectors", baseVectors)
       .add("random-counts", baseCountsB.build())
+      .add("randomize-dimension", randomDim)
       // TODO: umatrix
       .add("training-set", ivecs.serialize(factory)/* TODO: ivecB.build() */)
       .add("base-path", basePath)
